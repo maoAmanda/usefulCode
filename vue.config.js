@@ -1,8 +1,9 @@
 const SpritesmithPlugin = require("webpack-spritesmith");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
+const CompressionWebpackPlugin = require("compression-webpack-plugin");
 const path = require("path"); //引入path模块
 const fs = require("fs");
 const isProduction = process.env.NODE_ENV.indexOf("release") > -1;
+const productionGzipExtensions = ["js", "css"];
 // cdn预加载的模块及地址
 const cdnModule = {
   externals: {
@@ -92,6 +93,16 @@ module.exports = {
   },
   productionSourceMap: false,
   configureWebpack: (config) => {
+    config.plugins.push(
+      new CompressionWebpackPlugin({
+        filename: "[path].gz[query]",
+        algorithm: "gzip",
+        test: new RegExp("\\.(" + productionGzipExtensions.join("|") + ")$"),
+        threshold: 1024, // 只有大小大于该值的资源会被处理,当前配置为对于超过1k的数据进行处理，不足1k的可能会越压缩越大
+        minRatio: 0.99, // 只有压缩率小于这个值的资源才会被处理
+        deleteOriginalAssets: true, // 删除原文件
+      })
+    );
     //如果是生产环境，采用CDN加载模式
     config.optimization = {
       splitChunks: {
