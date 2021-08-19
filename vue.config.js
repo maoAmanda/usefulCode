@@ -93,19 +93,44 @@ module.exports = {
   },
   productionSourceMap: false,
   configureWebpack: (config) => {
-    config.plugins.push(
-      new CompressionWebpackPlugin({
-        filename: "[path].gz[query]",
-        algorithm: "gzip",
-        test: new RegExp("\\.(" + productionGzipExtensions.join("|") + ")$"),
-        threshold: 10240, // 只有大小大于该值的资源会被处理,当前配置为对于超过1k的数据进行处理，不足1k的可能会越压缩越大
-        minRatio: 0.99, // 只有压缩率小于这个值的资源才会被处理
-        deleteOriginalAssets: true, // 删除原文件
-      })
-    );
     //如果是生产环境，采用CDN加载模式
-
     if (isProduction) {
+      config.optimization = {
+        minimize: true,
+        sideEffects: true,
+        usedExports: true,
+        concatenateModules: true,
+        splitChunks: {
+          chunks: "async",
+          minSize: 300000,
+          maxSize: 0,
+          minChunks: 1,
+          maxAsyncRequests: 6,
+          maxInitialRequests: 4,
+          cacheGroups: {
+            // 缓存组
+            vendors: {
+              test: /[\\/]node_modules[\\/]/,
+              priority: -10,
+            },
+            default: {
+              minChunks: 2,
+              priority: -20,
+              reuseExistingChunk: true,
+            },
+          },
+        },
+      };
+      config.plugins.push(
+        new CompressionWebpackPlugin({
+          filename: "[path].gz[query]",
+          algorithm: "gzip",
+          test: new RegExp("\\.(" + productionGzipExtensions.join("|") + ")$"),
+          threshold: 10240, // 只有大小大于该值的资源会被处理,当前配置为对于超过1k的数据进行处理，不足1k的可能会越压缩越大
+          minRatio: 0.99, // 只有压缩率小于这个值的资源才会被处理
+          // deleteOriginalAssets: true, // 删除原文件
+        })
+      );
       Object.assign(config, {
         externals: cdnModule.externals,
       });
@@ -153,14 +178,6 @@ module.exports = {
         return args;
       });
     }
-    config.optimization = {
-      minimize: true,
-      splitChunks: {
-        chunks: "all",
-        minSize: 10000,
-        maxSize: 200000,
-      },
-    };
     config.resolve.alias.set("@", resolve("src")); // key,value自行定义，比如.set('@@', resolve('src/components'))
     config.cache(true); // 开启缓存，加快项目启动，如果不需要可删除
   },
