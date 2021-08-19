@@ -1,5 +1,5 @@
 const SpritesmithPlugin = require("webpack-spritesmith");
-const CompressionWebpackPlugin = require("compression-webpack-plugin");
+const CompressionWebpackPlugin = require("compression-webpack-plugin"); // 开启gzip压缩
 const path = require("path"); //引入path模块
 const fs = require("fs");
 const isProduction = process.env.NODE_ENV.indexOf("release") > -1;
@@ -98,18 +98,13 @@ module.exports = {
         filename: "[path].gz[query]",
         algorithm: "gzip",
         test: new RegExp("\\.(" + productionGzipExtensions.join("|") + ")$"),
-        threshold: 1024, // 只有大小大于该值的资源会被处理,当前配置为对于超过1k的数据进行处理，不足1k的可能会越压缩越大
+        threshold: 10240, // 只有大小大于该值的资源会被处理,当前配置为对于超过1k的数据进行处理，不足1k的可能会越压缩越大
         minRatio: 0.99, // 只有压缩率小于这个值的资源才会被处理
         deleteOriginalAssets: true, // 删除原文件
       })
     );
     //如果是生产环境，采用CDN加载模式
-    config.optimization = {
-      splitChunks: {
-        minSize: 10000,
-        maxSize: 200000,
-      },
-    };
+
     if (isProduction) {
       Object.assign(config, {
         externals: cdnModule.externals,
@@ -158,6 +153,14 @@ module.exports = {
         return args;
       });
     }
+    config.optimization = {
+      minimize: true,
+      splitChunks: {
+        chunks: "all",
+        minSize: 10000,
+        maxSize: 200000,
+      },
+    };
     config.resolve.alias.set("@", resolve("src")); // key,value自行定义，比如.set('@@', resolve('src/components'))
     config.cache(true); // 开启缓存，加快项目启动，如果不需要可删除
   },
